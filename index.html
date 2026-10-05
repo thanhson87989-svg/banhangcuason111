@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111827">
+<title>Quản Lý Bán Hàng</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f3f4f6;color:#111827}
+header{background:#111827;color:#fff;padding:18px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 10px #0002}
+header h1{margin:0;font-size:21px}header p{margin:5px 0 0;color:#cbd5e1;font-size:13px}
+.container{max-width:1200px;margin:auto;padding:16px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px #0000000d}.card .label{font-size:13px;color:#64748b}.card .value{font-size:22px;font-weight:800;margin-top:6px}.profit{color:#059669}.revenue{color:#2563eb}
+.panel{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px #0000000d}
+h2{font-size:17px;margin:0 0 14px}
+.form{display:grid;grid-template-columns:1.1fr 2fr 1fr 1fr auto;gap:10px}
+input,select,button{font:inherit}input,select{width:100%;padding:11px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;outline:none}input:focus,select:focus{border-color:#2563eb}
+button{border:0;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer;background:#2563eb;color:white}button.secondary{background:#e5e7eb;color:#111827}button.danger{background:#dc2626}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.chart-wrap{height:320px;position:relative}.bars{height:260px;display:flex;align-items:flex-end;gap:12px;padding:10px 4px 30px;border-bottom:1px solid #e5e7eb;overflow-x:auto}.bar-item{min-width:55px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.bar{width:34px;background:#2563eb;border-radius:7px 7px 0 0;min-height:2px}.bar-value{font-size:10px;color:#475569;white-space:nowrap}.bar-label{font-size:11px;color:#64748b;white-space:nowrap}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:11px 9px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:14px}th{background:#f8fafc;color:#475569;position:sticky;top:0}td.num{text-align:right}td.actions-cell{white-space:nowrap}.mini{padding:7px 9px;font-size:12px}
+.empty{text-align:center;padding:30px;color:#94a3b8}
+.toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.month-filter{max-width:210px}
+.note{font-size:12px;color:#64748b;margin-top:8px}
+@media(max-width:800px){.cards{grid-template-columns:1fr}.form{grid-template-columns:1fr 1fr}.form button{grid-column:1/-1}.container{padding:10px}.panel{padding:12px}.chart-wrap{height:290px}}
+@media(max-width:480px){.form{grid-template-columns:1fr}.actions button{flex:1}.card .value{font-size:20px}}
+</style>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bán Hàng">
+<meta name="theme-color" content="#111827">
+</head>
+<body>
+<header><h1>📱 QUẢN LÝ BÁN HÀNG</h1><p>Offline • Dữ liệu lưu trên thiết bị • Không cần Internet</p></header>
+<div class="container">
+  <div class="cards">
+    <div class="card"><div class="label">TỔNG DOANH THU</div><div id="totalRevenue" class="value revenue">0 ₫</div></div>
+    <div class="card"><div class="label">TỔNG GIÁ NHẬP</div><div id="totalCost" class="value">0 ₫</div></div>
+    <div class="card"><div class="label">TỔNG LỢI NHUẬN</div><div id="totalProfit" class="value profit">0 ₫</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>➕ Thêm giao dịch</h2>
+    <form id="saleForm" class="form">
+      <input id="date" type="datetime-local" required>
+      <input id="phone" type="text" placeholder="Máy bán ra, VD: iPhone 17 Pro Max 256" required>
+      <input id="cost" type="number" min="0" step="1000" placeholder="Giá nhập" required>
+      <input id="price" type="number" min="0" step="1000" placeholder="Giá bán" required>
+      <button type="submit" id="submitBtn">Thêm</button>
+    </form>
+    <div class="note">Nhập giá bằng số, ví dụ 20000000. Lợi nhuận = giá bán − giá nhập.</div>
+  </div>
+
+  <div class="panel">
+    <div class="toolbar">
+      <h2>📊 Doanh thu theo tháng</h2>
+      <select id="chartYear" class="month-filter"></select>
+    </div>
+    <div class="chart-wrap"><div id="bars" class="bars"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="toolbar">
+      <h2>📋 Danh sách bán hàng</h2>
+      <input id="filterMonth" type="month" class="month-filter" title="Lọc theo tháng">
+    </div>
+    <div class="actions" style="margin:12px 0">
+      <button class="secondary" onclick="clearFilter()">Tất cả</button>
+      <button class="secondary" onclick="backup()">💾 Sao lưu JSON</button>
+      <button class="secondary" onclick="document.getElementById('restoreFile').click()">📥 Khôi phục</button>
+      <button class="secondary" onclick="exportCSV()">📄 Xuất CSV</button>
+      <button class="danger" onclick="deleteAll()">🗑 Xóa tất cả</button>
+      <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ngày giờ</th><th>Máy bán ra</th><th>Giá nhập</th><th>Giá bán</th><th>Lợi nhuận</th><th></th></tr></thead>
+        <tbody id="saleBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY='offline_sales_v1';
+let sales=JSON.parse(localStorage.getItem(KEY)||'[]');
+let editId=null;
+
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND',maximumFractionDigits:0}).format(Number(n)||0);
+function save(){localStorage.setItem(KEY,JSON.stringify(sales));render();}
+function pad(n){return String(n).padStart(2,'0')}
+function localDateValue(d=new Date()){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function fmtDate(s){let d=new Date(s);return isNaN(d)?s:d.toLocaleString('vi-VN',{hour12:false})}
+function resetForm(){editId=null;$('saleForm').reset();$('date').value=localDateValue();$('submitBtn').textContent='Thêm'}
+function filtered(){let m=$('filterMonth').value;return m?sales.filter(x=>x.date.slice(0,7)===m):sales}
+function render(){
+ const arr=filtered();
+ const revenue=arr.reduce((a,x)=>a+Number(x.price),0), cost=arr.reduce((a,x)=>a+Number(x.cost),0);
+ $('totalRevenue').textContent=money(revenue);$('totalCost').textContent=money(cost);$('totalProfit').textContent=money(revenue-cost);
+ $('saleBody').innerHTML=arr.length?arr.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).map(x=>`
+ <tr><td>${fmtDate(x.date)}</td><td><b>${esc(x.phone)}</b></td><td class="num">${money(x.cost)}</td><td class="num">${money(x.price)}</td><td class="num" style="color:${x.price-x.cost>=0?'#059669':'#dc2626'}">${money(x.price-x.cost)}</td>
+ <td class="actions-cell"><button class="mini secondary" onclick="editSale('${x.id}')">Sửa</button> <button class="mini danger" onclick="removeSale('${x.id}')">Xóa</button></td></tr>`).join(''):`<tr><td colspan="6" class="empty">Chưa có giao dịch nào</td></tr>`;
+ renderChart();
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+$('saleForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const item={id:editId||Date.now().toString(),date:$('date').value,phone:$('phone').value.trim(),cost:Number($('cost').value),price:Number($('price').value)};
+ if(!item.date||!item.phone||item.cost<0||item.price<0)return;
+ if(editId)sales=sales.map(x=>x.id===editId?item:x);else sales.push(item);
+ save();resetForm();
+});
+$('filterMonth').addEventListener('change',render);
+function editSale(id){let x=sales.find(a=>a.id===id);if(!x)return;editId=id;$('date').value=x.date;$('phone').value=x.phone;$('cost').value=x.cost;$('price').value=x.price;$('submitBtn').textContent='Lưu sửa';window.scrollTo({top:0,behavior:'smooth'})}
+function removeSale(id){if(confirm('Xóa giao dịch này?')){sales=sales.filter(x=>x.id!==id);save()}}
+function deleteAll(){if(!sales.length)return;if(confirm('XÓA TOÀN BỘ dữ liệu bán hàng? Hãy chắc chắn bạn đã sao lưu.')){sales=[];save()}}
+function clearFilter(){$('filterMonth').value='';render()}
+function backup(){
+ const blob=new Blob([JSON.stringify({version:1,createdAt:new Date().toISOString(),sales},null,2)],{type:'application/json'});
+ download(blob,'backup-ban-hang-'+new Date().toISOString().slice(0,10)+'.json');
+}
+$('restoreFile').addEventListener('change',e=>{
+ const f=e.target.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{try{let obj=JSON.parse(r.result);let data=Array.isArray(obj)?obj:obj.sales;if(!Array.isArray(data))throw 0;if(confirm(`Khôi phục ${data.length} giao dịch? Dữ liệu hiện tại sẽ được thay thế.`)){sales=data;save();}}catch{alert('File backup không hợp lệ.')}e.target.value=''};
+ r.readAsText(f);
+});
+function exportCSV(){
+ let rows=[['Ngày giờ','Máy bán ra','Giá nhập','Giá bán','Lợi nhuận'],...filtered().map(x=>[fmtDate(x.date),x.phone,x.cost,x.price,x.price-x.cost])];
+ let csv='\uFEFF'+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+ download(new Blob([csv],{type:'text/csv;charset=utf-8'}),'ban-hang.csv');
+}
+function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function renderChart(){
+ let years=[...new Set(sales.map(x=>x.date.slice(0,4)))].sort();
+ let current=new Date().getFullYear().toString();if(!years.includes(current))years.push(current);years.sort();
+ $('chartYear').innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+ if(!$('chartYear').dataset.ready){$('chartYear').value=current;$('chartYear').dataset.ready='1'}
+ let y=$('chartYear').value||current, vals=Array.from({length:12},(_,i)=>sales.filter(x=>x.date.slice(0,4)==y&&Number(x.date.slice(5,7))===i+1).reduce((a,x)=>a+Number(x.price),0));
+ let max=Math.max(...vals,1);
+ $('bars').innerHTML=vals.map((v,i)=>`<div class="bar-item"><div class="bar-value">${v?shortMoney(v):''}</div><div class="bar" style="height:${Math.max(2,v/max*210)}px" title="${money(v)}"></div><div class="bar-label">T${i+1}</div></div>`).join('');
+}
+$('chartYear').addEventListener('change',()=>{renderChart()});
+function shortMoney(n){if(n>=1e9)return (n/1e9).toFixed(1).replace('.0','')+' tỷ';if(n>=1e6)return (n/1e6).toFixed(1).replace('.0','')+'tr';if(n>=1e3)return Math.round(n/1e3)+'k';return String(n)}
+$('date').value=localDateValue();render();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(console.error));
+}
+</script>
+</body>
+</html>
